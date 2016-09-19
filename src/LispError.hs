@@ -1,18 +1,9 @@
 module LispError where
 
-import Control.Monad.Error.Class
+--import Control.Monad.Error.Class
 import Text.ParserCombinators.Parsec.Error
 import LispExp
-import Control.Monad.Error (ErrorT)
-
-data LispError = NumArgs Integer [LispVal]
-               | TypeMismatch String LispVal
-               | Parser ParseError
-               | BadSpecialForm String LispVal
-               | NotFunction String String
-               | UnboundVar String String
-               | Default String
-               deriving (Eq)
+import Control.Monad.Error
 
 instance Show LispError where
   show (UnboundVar message varname) = message ++ ": " ++ varname
@@ -27,8 +18,6 @@ instance Error LispError where
   noMsg = Default "An error has occurred"
   strMsg = Default
 
-type ThrowsError = Either LispError
-
 trapError action = catchError action (return . show)
 
 extractValue :: ThrowsError a -> a
@@ -42,3 +31,6 @@ type IOThrowsError = ErrorT LispError IO
 liftThrows :: ThrowsError a -> IOThrowsError a
 liftThrows (Left err ) = throwError err
 liftThrows (Right val) = return val
+
+wrap :: ThrowsError a -> IOThrowsError a
+wrap x = ErrorT $ return x

@@ -4,15 +4,18 @@ import Parser
 import Test.Hspec
 import LispExp
 import Eval
+import Env
 import LispError
 import Control.Exception (evaluate)
 import Control.Monad.Error
 import Control.Monad.Error.Class
+import Test.HUnit
 
 parseAndEval :: String -> IO (ThrowsError LispVal)
 parseAndEval str = runErrorT $ do
   exp <- ErrorT $ return $ readExpr str
-  eval exp
+  env <- ErrorT $ (fmap return primitiveBindings)
+  eval env exp
 
 shouldEvaluateTo :: String -> LispVal -> Expectation
 shouldEvaluateTo str expected =
@@ -21,6 +24,18 @@ shouldEvaluateTo str expected =
 shouldThrowError :: String -> LispError -> Expectation
 shouldThrowError str error =
   parseAndEval str `shouldReturn` throwError error
+
+shouldDefineFunction :: String -> [String] -> Maybe String -> [LispVal] -> Expectation
+shouldDefineFunction expr params vararg body =
+  do parsed <- parseAndEval expr
+     case parsed of
+       (Right (Func _params _vararg _body _)) -> do
+         _params `shouldBe` params
+         _vararg `shouldBe` vararg
+         _body `shouldBe` body
+       other -> assertFailure $ "Expected function, got: " ++ show other
+
+
 
 evalSpec = describe "Eval" $ do
     it "evaluates arithmetic expressions" $ do
@@ -62,3 +77,23 @@ evalSpec = describe "Eval" $ do
       "(case (+ 2 3) ((5 6 7) 10))" `shouldEvaluateTo` Integer 10
       "(case (* 3 7) ((5 6 7) 11) ((43 21 10) 100))" `shouldEvaluateTo` Integer 100
       "(case (+ 20 3) ((5 6 7) 10) (else 123))" `shouldEvaluateTo` Integer 123
+    it "let" $ do
+      "(let ((x 2) (y 3)) (* x y))" `shouldEvaluateTo` Integer 6
+    it "define functions" $ do
+      shouldDefineFunction
+        "(lambda (x y) (* x y))"
+        ["x", "y"]
+        Nothing
+        [List [Atom "*", Atom "x", Atom "y"]]
+      shouldDefineFunction
+        "(lambda (x y z) (if (< x y) z (* x z)))"
+        ["x", "y", "z"]
+        Nothing
+        [List [Atom "if", List [Atom "<", Atom "x", Atom "y"], Atom "z", List [Atom "*", Atom "x", Atom "z"]]]
+      "((lambda (x y) (+ x y)) 123 456)" `shouldEvaluateTo` Integer 579
+      shouldDefineFunction
+        "(lambda x (* 2 x))"
+        ["x"]
+        Nothing
+        [List [Atom "*", Integer 2, Atom "x"]]
+      "((lambda x (if (< x 0) (- x) x)) (- 3))" `shouldEvaluateTo` Integer 3

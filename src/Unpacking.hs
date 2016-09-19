@@ -19,3 +19,6 @@ unpackString :: LispVal -> ThrowsError String
 unpackString (String s) = return s
 unpackString badExp = throwError_ $ TypeMismatch "string" badExp
 
+unpackParameter :: LispVal -> ThrowsError String
+unpackParameter (Atom param) = return param
+unpackParameter badExp = throwError_ $ TypeMismatch "atom" badExp

@@ -7,7 +7,7 @@ import LispExp
 shouldBeParsedTo :: String -> LispVal -> Expectation
 shouldBeParsedTo str expected =
   readExpr str `shouldBe` return expected
-  
+
 parsingSpec = do
   describe "Parsing" $ do
     it "parses an integer" $ do
@@ -38,3 +38,15 @@ parsingSpec = do
       "\"hola \\\"hello\\\"\"" `shouldBeParsedTo` String "hola \"hello\""
     it "parse quotes" $ do
       "'(1 \"2\")" `shouldBeParsedTo` List [Atom "quote", List [ Integer 1, String "2" ]]
+    it "parses lets" $ do
+      "(let ((x 2) (y 3)) (* x y))" `shouldBeParsedTo`
+        List [ Atom "let"
+             , List
+               [ List [Atom "x", Integer 2]
+               , List [Atom "y", Integer 3]
+               ]
+             , List [Atom "*", Atom "x", Atom "y"]
+             ]
+    it "parses functions" $ do
+      "(define (add x y) (* x y))" `shouldBeParsedTo` List [Atom "define", List [Atom "add", Atom "x", Atom "y"], List [Atom "*", Atom "x", Atom "y"]]
+      "(lambda (x y) (* x y))" `shouldBeParsedTo` List [Atom "lambda", List [Atom "x", Atom "y"], List [Atom "*", Atom "x", Atom "y"]]

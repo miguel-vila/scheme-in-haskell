@@ -36,6 +36,7 @@ test-suite scheme-in-haskell-test
   main-is:             Spec.hs
   build-depends:       base
                      , hspec
+                     , HUnit
                      , transformers
                      , mtl
                      , scheme-in-haskell

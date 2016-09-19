@@ -6,8 +6,6 @@ import Data.IORef
 import Control.Monad.Error.Class
 import Control.Monad.Error
 
-type Env = IORef [(String, IORef LispVal)]
-
 nullEnv :: IO Env
 nullEnv = newIORef []
 
@@ -44,6 +42,14 @@ defineVar envRef name value = ErrorT $
                env <- readIORef envRef
                return <$> writeIORef envRef ((name,valueRef):env)
 
-defineVars :: Env -> [(String, LispVal)] -> IOThrowsError ()
-defineVars env vars =
-  mapM_ (uncurry $ defineVar env) vars
+bindVars :: Env -> [(String, LispVal)] -> IO Env
+bindVars envRef vars =
+  let varBinding (name, val) = do
+        ref <- newIORef val
+        return (name,ref)
+      extendEnvWith env = do
+        newBindings <- mapM varBinding vars
+        return (newBindings ++ env)
+  in do env <- readIORef envRef
+        extendedEnv <- extendEnvWith env
+        newIORef extendedEnv

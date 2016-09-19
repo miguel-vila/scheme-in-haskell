@@ -1,4 +1,4 @@
 # Scheme in Haskell
 
-[![Build Status](https://travis-ci.org/miguel-vila/scheme-in-haskell.svg?branch=master)](https://travis-ci.org/miguel-vila/scheme-in-haskell)
+[![CircleCI](https://circleci.com/gh/miguel-vila/scheme-in-haskell.svg?style=svg)](https://circleci.com/gh/miguel-vila/scheme-in-haskell)
 
