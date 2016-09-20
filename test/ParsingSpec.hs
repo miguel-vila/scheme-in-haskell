@@ -67,4 +67,5 @@ parsingSpec = do
         [ List [Atom "define", List [Atom "add", Atom "x", Atom "y"], List [Atom "+", Atom "x", Atom "y"]]
         , List [Atom "add", Integer 1, Integer 2]
         ]
-      
+      "(define (add x y)\n\t(+ x y))" `shouldParseLinesTo`
+        [ List [Atom "define", List [Atom "add", Atom "x", Atom "y"], List [Atom "+", Atom "x", Atom "y"]] ]

@@ -126,7 +126,7 @@ parseExpr =
 
 
 parseList :: Parser LispVal
-parseList = List <$> sepBy parseExpr spaces
+parseList = List <$> parseExpr `sepEndBy` spaces
 
 parseDottedList :: Parser LispVal
 parseDottedList = do
