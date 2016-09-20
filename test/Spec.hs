@@ -8,8 +8,10 @@ import Control.Monad.Error
 import Control.Monad.Error.Class
 import ParsingSpec
 import EvalSpec
+import UtilsSpec
 
 main :: IO ()
 main = hspec $ do
   parsingSpec
   evalSpec
+  utilsSpec

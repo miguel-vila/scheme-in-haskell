@@ -14,11 +14,13 @@ cabal-version:       >=1.10
 
 library
   hs-source-dirs:      src
-  exposed-modules:     Lib, Eval, LispError, LispExp, Parser, LispList, StringOps, BinaryOps, NumericOps, ComparisonOps, BooleanOps, Conditionals, TypeQueries, Unpacking, Env, Repl
+  exposed-modules:     Lib, Eval, LispError, LispExp, Parser, LispList, StringOps, BinaryOps, NumericOps, ComparisonOps, BooleanOps, Conditionals, TypeQueries, Unpacking, Env, Repl, Utils
   build-depends:       base >= 4.7 && < 5
                      , parsec
                      , vector
                      , mtl
+                     , haskeline
+                     , transformers
   default-language:    Haskell2010
 
 executable scheme-in-haskell-exe
