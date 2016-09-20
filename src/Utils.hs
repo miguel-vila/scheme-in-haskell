@@ -10,9 +10,8 @@ match a b = do suffix <- loop a b
           if x == y
           then loop xs ys
           else Nothing
-        loop [] [] = Just []
+        loop [] ys = Just ys
         loop _  [] = Nothing
-        loop [] (y:ys) = Just (y:ys)
 
 findMatches :: String -> [String] -> [(String,String)]
 findMatches prefix xs =

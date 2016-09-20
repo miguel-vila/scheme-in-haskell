@@ -6,10 +6,22 @@ import LispError
 import Data.Vector (fromList)
 import Numeric (readFloat, readHex, readOct, readDec)
 
-readExpr :: String -> ThrowsError LispVal
-readExpr input = case parse parseExpr "lisp" input of
+readOrThrow :: Parser a -> String -> ThrowsError a
+readOrThrow parser input = case parse parser "lisp" input of
   Left err -> throwError_ $ Parser err
   Right val -> return val
+
+readExpr :: String -> ThrowsError LispVal
+readExpr = readOrThrow parseExpr
+
+readExprList :: String -> ThrowsError [LispVal]
+readExprList = readOrThrow ( sepEndBy (many comment >> parseExpr) (spaces <|> (char '\n' >> return ())) )
+
+comment :: Parser ()
+comment = do
+  char ';'
+  manyTill anyChar (char '\n')
+  return ()
 
 symbols = "!$%&|*+-/:<=?>@^_#"
 

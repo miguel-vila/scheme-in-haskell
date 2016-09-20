@@ -59,18 +59,20 @@ lispCompletion envRef (left,_) =
      let completions = findCompletions prefix names
      return (left, completions)
 
+handleCommand :: Env -> (Env -> InputT IO ()) -> String -> InputT IO ()
+handleCommand env loop "" = loop env
+handleCommand env loop inputCommand = do
+  result <- liftIO $ evalString env inputCommand
+  outputStrLn $ result
+  (loop env)
+
 runRepl :: IO ()
 runRepl = let settings env = setComplete (lispCompletion env) defaultSettings
               loop :: Env -> InputT IO ()
               loop env = do input <- getInputLine "Lisp> "
                             case input of
-                              Just "" -> do
-                                loop env
-                              Just inputCommand -> do
-                                result <- liftIO $ evalString env inputCommand
-                                outputStrLn $ result
-                                (loop env)
-                              Nothing -> return ()
+                              Just command -> handleCommand env loop command
+                              Nothing      -> return ()
           in do env <- primitiveBindings
                 runInputT (settings env) (loop env)
 

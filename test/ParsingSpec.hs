@@ -8,6 +8,10 @@ shouldBeParsedTo :: String -> LispVal -> Expectation
 shouldBeParsedTo str expected =
   readExpr str `shouldBe` return expected
 
+shouldParseLinesTo :: String -> [LispVal] -> Expectation
+shouldParseLinesTo str expected =
+  readExprList str `shouldBe` return expected
+
 parsingSpec = do
   describe "Parsing" $ do
     it "parses an integer" $ do
@@ -48,5 +52,19 @@ parsingSpec = do
              , List [Atom "*", Atom "x", Atom "y"]
              ]
     it "parses functions" $ do
-      "(define (add x y) (* x y))" `shouldBeParsedTo` List [Atom "define", List [Atom "add", Atom "x", Atom "y"], List [Atom "*", Atom "x", Atom "y"]]
-      "(lambda (x y) (* x y))" `shouldBeParsedTo` List [Atom "lambda", List [Atom "x", Atom "y"], List [Atom "*", Atom "x", Atom "y"]]
+      "(define (add x y) (* x y))" `shouldBeParsedTo`
+        List [Atom "define", List [Atom "add", Atom "x", Atom "y"], List [Atom "*", Atom "x", Atom "y"]]
+      "(lambda (x y) (* x y))" `shouldBeParsedTo`
+        List [Atom "lambda", List [Atom "x", Atom "y"], List [Atom "*", Atom "x", Atom "y"]]
+    it "parses comments" $ do
+      readOrThrow comment "; comentario!\n" `shouldBe` return ()
+    it "parses multiple lines" $ do
+      "(define (add x y) (+ x y)) (add 1 2)" `shouldParseLinesTo`
+        [ List [Atom "define", List [Atom "add", Atom "x", Atom "y"], List [Atom "+", Atom "x", Atom "y"]]
+        , List [Atom "add", Integer 1, Integer 2]
+        ]
+      "(define (add x y) (+ x y))\n; comentario\n(add 1 2)" `shouldParseLinesTo`
+        [ List [Atom "define", List [Atom "add", Atom "x", Atom "y"], List [Atom "+", Atom "x", Atom "y"]]
+        , List [Atom "add", Integer 1, Integer 2]
+        ]
+      
