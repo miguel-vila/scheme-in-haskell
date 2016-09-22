@@ -14,7 +14,7 @@ cabal-version:       >=1.10
 
 library
   hs-source-dirs:      src
-  exposed-modules:     Lib, Eval, LispError, LispExp, Parser, LispList, StringOps, BinaryOps, NumericOps, ComparisonOps, BooleanOps, Conditionals, TypeQueries, Unpacking, Env, Repl, Utils, ReplLoop, ReplCommands, Autocompletion, ReplState
+  exposed-modules:     Lib, Eval, LispError, LispExp, Parser, LispList, StringOps, BinaryOps, NumericOps, ComparisonOps, BooleanOps, Conditionals, TypeQueries, Unpacking, Env, Repl, Utils, ReplCommands, Autocompletion, ReplState
   build-depends:       base >= 4.7 && < 5
                      , parsec >= 3.1
                      , vector >= 0.11

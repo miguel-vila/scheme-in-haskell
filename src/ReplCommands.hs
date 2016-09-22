@@ -1,7 +1,6 @@
 module ReplCommands where
 
 import ReplState
-import ReplLoop
 import LispExp
 import Data.Maybe
 import Data.List.Split (splitOn)
@@ -13,7 +12,7 @@ import System.Environment(lookupEnv)
 import System.Console.Haskeline
 import Control.Monad.IO.Class
 
-type ReplCommand = Env -> ReplState -> Loop -> InputT IO ()
+type ReplCommand = Env -> ReplState -> IO (ReplState, String)
 
 fromEditor :: String -> IO String
 fromEditor buffer = do
@@ -37,30 +36,28 @@ fromEditor buffer = do
           return p_handle
 
 showHistory :: ReplCommand
-showHistory env replState loop =
-  do outputStrLn $ toFileContent (inputs replState) (outputs replState)
-     loop replState env
+showHistory env replState =
+  return (replState, toFileContent (inputs replState) (outputs replState))
 
 editHistory :: ReplCommand
-editHistory env replState loop =
+editHistory env replState =
   let content = toFileContent (inputs replState) (outputs replState)
-  in do finalContent <- liftIO $ fromEditor content
-        outputStrLn finalContent
-        loop replState env
+  in do finalContent <- fromEditor content
+        return (replState, finalContent)
 
 replCommands :: [(String, ReplCommand)]
 replCommands = [ ("history", showHistory)
-                  , ("edit", editHistory)
-                  ]
+               , ("edit", editHistory)
+               ]
 
-handleReplCommand :: Env -> ReplState -> Loop -> String -> InputT IO ()
-handleReplCommand env replState loop command =
+handleReplCommand :: Env -> ReplState -> String -> IO (ReplState, String)
+handleReplCommand env replState command =
   case lookup command replCommands of
-    Just replCommand -> replCommand env replState loop
+    Just replCommand -> replCommand env replState
     Nothing -> do
-      outputStrLn $ "UNKNOWN REPL COMMAND : " ++ command
-      loop replState env
+      return (replState, "UNKNOWN REPL COMMAND : " ++ command)
 
+commentOutOutput :: String -> String
 commentOutOutput =
   intercalate "\n" . map (';':) . splitOn "\n"
 
@@ -70,13 +67,7 @@ toFileContent inputs outputs =
 
 fromFileContent :: String -> [String]
 fromFileContent fileContent =
-  let lines = splitOn fileContent "\n"
+  let lines = splitOn "\n" fileContent
       isComment (';':_) = True
       isComment _       = False
-      getInputLines []     acc = acc
-      getInputLines ls acc =
-        let (inputs, rest) = break isComment ls
-            acc' = acc ++ inputs
-            (_,ls') = break (not . isComment) rest
-        in getInputLines ls' acc'
-  in getInputLines lines []
+  in filter (not . isComment) lines
