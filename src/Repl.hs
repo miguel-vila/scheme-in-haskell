@@ -53,9 +53,7 @@ insertCommandExecution replState input output =
             , outputs = (outputs replState) ++ [output]
             }
 
-data CommandResponse = WaitForNextLine | CommandResult String
-
-handleLispInput :: Env -> ReplState -> String -> IO (CommandResponse, ReplState)
+handleLispInput :: Env -> ReplState -> String -> InputT IO (ReplState, Maybe String)
 handleLispInput env replState command =
   let currentBuffer = buffer replState
       currentOpenParens = maybe 0 parensToClose currentBuffer
@@ -64,39 +62,71 @@ handleLispInput env replState command =
         (\multilineBuffer -> MultiLineBuffer openParens ((bufferContent multilineBuffer) ++ "\n" ++ command) )
         currentBuffer
       commandToExecute currentLine = maybe currentLine (\multilineBuffer -> (bufferContent multilineBuffer) ++ "\n" ++ currentLine) currentBuffer
-      evalCommand replState "" = return (WaitForNextLine, replState)
+      evalCommand replState "" = return (replState, Nothing)
       evalCommand replState inputCommand = do
-        (result, error) <- evalString env inputCommand
+        (result, error) <- liftIO $ evalString env inputCommand
         let replState' = if error then resetBuffer replState else insertCommandExecution replState inputCommand result
-        return (CommandResult result, replState')
+        return (replState', Just result)
   in case readParens currentOpenParens command of
        Right n | n > 0 ->
                  let buffer' = Just $ newMultilineBuffer n command
                      replState' = replState { buffer = buffer' }
-                 in return (WaitForNextLine, replState')
+                 in return (replState', Nothing)
        Right 0 ->
          evalCommand (resetBuffer replState) (commandToExecute command)
        _ ->
          evalCommand replState (commandToExecute command)
 
+promptText :: ReplState -> String
+promptText replState = maybe "Lisp> " (const "    | ") (buffer replState)
+
+handleLispInputs :: Env -> ReplState -> [String] -> InputT IO ReplState
+handleLispInputs env replState [] = return replState
+handleLispInputs env replState (input:rest) = do
+  outputStrLn $ (promptText replState) ++ input
+  (replState', outputMaybe) <- handleLispInput env replState input
+  maybe (return ()) outputStrLn outputMaybe
+  handleLispInputs env replState' rest
+
+executeLispInputs :: Env -> ReplState -> [String] -> InputT IO ReplState
+executeLispInputs env replState []           = return replState
+executeLispInputs env replState (input:rest) = do
+  (replState', _) <- handleLispInput env replState input
+  executeLispInputs env replState' rest
+
+undo :: ReplState -> InputT IO (Env, ReplState)
+undo replState =
+  let newInputs = init $ inputs replState
+      replState' = initialReplState
+  in do env' <- liftIO primitiveBindings
+        replState'' <- executeLispInputs env' replState' newInputs
+        return (env', replState'')
+
 runRepl :: IO ()
 runRepl = do
   let settings env = setComplete (lispCompletion env) defaultSettings
   let loop replState env =
-        do input <- getInputLine $ maybe "Lisp> " (const "    | ") (buffer replState)
+        do input <- getInputLine $ promptText replState
            case input of
+             Just ":edit" ->
+               let content = toFileContent (inputs replState) (outputs replState)
+               in do finalContent <- liftIO $ fromEditor content
+                     let inputs = fromFileContent finalContent
+                     env' <- liftIO primitiveBindings
+                     outputStrLn "** RERUNNING COMMANDS **"
+                     replState' <- handleLispInputs env' initialReplState inputs
+                     loop replState' env'
+             Just ":undo" ->
+               do (env', replState') <- undo replState
+                  loop replState' env'
              Just (':':replCommand) ->
                do (replState', output) <- liftIO $ handleReplCommand env replState replCommand
                   outputStrLn output
                   loop replState' env
              Just lispInput -> do
-               (commandResult, replState') <- liftIO $ handleLispInput env replState lispInput
-               case commandResult of
-                 WaitForNextLine ->
-                   loop replState' env
-                 CommandResult result -> do
-                   outputStrLn result
-                   loop replState' env
+               (replState', outputMaybe) <- handleLispInput env replState lispInput
+               maybe (return ()) outputStrLn outputMaybe
+               loop replState' env
              Nothing      -> return ()
   env <- primitiveBindings
   runInputT (settings env) (loop initialReplState env)

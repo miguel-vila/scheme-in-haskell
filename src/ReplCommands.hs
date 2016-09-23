@@ -24,7 +24,7 @@ fromEditor buffer = do
   return editedBuffer
   where dumpSessionIntoTempFile = do
           tempdir <- getTemporaryDirectory
-          (tempfile, temph) <- openTempFile tempdir "session.scheme"
+          (tempfile, temph) <- openTempFile tempdir "session.scm"
           hPutStr temph buffer
           hFlush temph
           hClose temph
